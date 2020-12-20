@@ -57,7 +57,7 @@
 	 collection)))
 
 (defun test4 ()
- (equal-set? (all-values (test3-internal 2)) '((0 0) (1 0) (0 1) (1 1))))
+ (equal-set? (all-values (test4-internal 2)) '((0 0) (1 0) (0 1) (1 1))))
 
 (defun test5-internal (list)
  (local (let (collection)
@@ -67,7 +67,7 @@
 	 collection)))
 
 (defun test5 ()
- (equal-set? (all-values (test3-internal 2)) '((0 0) (1 0) (0 1) (1 1))))
+ (equal-set? (all-values (test5-internal (make-list 2))) '((0 0) (1 0) (0 1) (1 1))))
 
 (defun test6-internal (list)
  (local (let (collection)
@@ -77,7 +77,7 @@
 	 collection)))
 
 (defun test6 ()
- (equal-set? (all-values (test3-internal 2)) '((0 0) (1 0) (0 1) (1 1))))
+ (equal-set? (all-values (test6-internal (make-list 2))) '((0 0) (1 0) (0 1) (1 1))))
 
 ;;; Problems with LOOP:
 ;;;  1. Symbolics implementation of LOOP expands directly into RPLACD without
