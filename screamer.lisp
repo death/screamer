@@ -2367,6 +2367,9 @@ contexts even though they may appear inside a SCREAMER::DEFUN.") args))
   (let ((function-record (get-function-record function-name))
         (callers (indirect-callers function-name))
         (function-records '()))
+    ;; Start by assuming the function and all its transitive or
+    ;; effective or "indirect" (confusing terminology) callers are
+    ;; deterministic.
     (setf (function-record-old-deterministic? function-record)
           (function-record-deterministic? function-record))
     (setf (function-record-deterministic? function-record) t)
@@ -2378,6 +2381,8 @@ contexts even though they may appear inside a SCREAMER::DEFUN.") args))
                 (function-record-deterministic? function-record))
           (setf (function-record-deterministic? function-record) t)
           (push function-record function-records))))
+    ;; Go through each caller and set the old-deterministic flag of
+    ;; its unvisited callees.
     (dolist (caller callers)
       (dolist (callee (callees caller))
         (let ((function-record (get-function-record callee)))
@@ -2385,11 +2390,26 @@ contexts even though they may appear inside a SCREAMER::DEFUN.") args))
             (setf (function-record-old-deterministic? function-record)
                   (function-record-deterministic? function-record))
             (push function-record function-records)))))
+    ;; Walk the function body to determine whether it's deterministic.
+    ;; Due to the above assignments, a mutually recursive function
+    ;; found may be found to be deterministic even if it is not.
     (determine-whether-deterministic function-name environment)
+    ;; Walk the bodies of all direct callers to determine whether they
+    ;; are deterministic.  A caller may again be found
+    ;; nondeterministic due to some other nondeterministic form.
     (determine-whether-callers-are-deterministic function-name nil environment)
+    ;; If a caller is found to be nondeterministic and we are found to
+    ;; be deterministic, try to find out whether we are deterministic
+    ;; once again.  If we call this caller (by mutual recursion) we'll
+    ;; be found to be nondeterministic, which is what we want.
+    (when (function-record-deterministic? function-record)
+      (determine-whether-deterministic function-name environment))
     (let ((definitions (function-definition function-name environment)))
       (unless (eq (not (function-record-deterministic? function-record))
                   (not (function-record-old-deterministic? function-record)))
+        ;; The status of the function has changed.  For each indirect
+        ;; caller that has a callee that has changed status, add the
+        ;; caller definition to our definitions list.
         (dolist (caller callers)
           (if (and (not (equal caller function-name))
                    (some #'(lambda (callee)
@@ -2404,6 +2424,8 @@ contexts even though they may appear inside a SCREAMER::DEFUN.") args))
                             definitions)))))
       ;; note: This is so that macroexpand without compile doesn't get out of
       ;;       sync.
+      ;;
+      ;; Restore the old deterministic definitions.
       (dolist (function-record function-records)
         (setf (function-record-deterministic? function-record)
               (function-record-old-deterministic? function-record)))
