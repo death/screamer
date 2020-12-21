@@ -3724,7 +3724,9 @@ Otherwise returns the value of X."
   ;; note: X must be a variable.
   ;; note: UPPER-BOUND must be a real constant.
   (when (variable-integer? x)
-    (setf upper-bound (floor upper-bound)))
+    (when (or (not (floatp upper-bound))
+              (not (sb-ext:float-infinity-p upper-bound)))
+      (setf upper-bound (floor upper-bound))))
   (when (and (or (eq (variable-value x) x) (not (variable? (variable-value x))))
              (or (not (variable-upper-bound x))
                  (< upper-bound (variable-upper-bound x))))
